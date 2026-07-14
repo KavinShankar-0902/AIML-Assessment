@@ -1,0 +1,83 @@
+import os
+import cv2
+import pandas as pd
+
+from sklearn.model_selection import train_test_split
+
+# Change this to your dataset folder
+dataset_path = "dataset"
+
+# Resize images to 224x224
+image_size = (224, 224)
+
+metadata = []
+
+# Process images
+for label in os.listdir(dataset_path):
+
+    label_path = os.path.join(dataset_path, label)
+
+    if not os.path.isdir(label_path):
+        continue
+
+    print(f"Processing folder: {label}")
+
+    for file in os.listdir(label_path):
+
+        image_path = os.path.join(label_path, file)
+
+        image = cv2.imread(image_path)
+
+        # Skip unreadable images
+        if image is None:
+            print(f"Skipping corrupted image: {image_path}")
+            continue
+
+        try:
+            # Resize image
+            image = cv2.resize(image, image_size)
+
+            # Normalize
+            image = image.astype("float32") / 255.0
+
+            # Save metadata only
+            metadata.append({
+                "Filename": file,
+                "Label": label,
+                "Path": image_path,
+                "Width": image.shape[1],
+                "Height": image.shape[0]
+            })
+
+        except Exception as e:
+            print(f"Error processing {image_path}")
+            print(e)
+
+# Convert metadata to DataFrame
+metadata_df = pd.DataFrame(metadata)
+
+# Save metadata
+metadata_df.to_csv("image_metadata.csv", index=False)
+
+# Split metadata into train and validation
+train_df, val_df = train_test_split(
+    metadata_df,
+    test_size=0.2,
+    random_state=42,
+    shuffle=True
+)
+
+# Save split CSVs
+train_df.to_csv("train_metadata.csv", index=False)
+val_df.to_csv("validation_metadata.csv", index=False)
+
+# Display results
+print("\n==============================")
+print("Pipeline Completed Successfully")
+print("==============================")
+print(f"Total Images      : {len(metadata_df)}")
+print(f"Training Images   : {len(train_df)}")
+print(f"Validation Images : {len(val_df)}")
+
+print("\nFirst 5 Metadata Entries:")
+print(metadata_df.head())
